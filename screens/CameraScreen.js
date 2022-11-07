@@ -3,6 +3,9 @@ import { StyleSheet, Text, View, Image } from 'react-native';
 import { Camera, CameraType } from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import Button from '../src/components/Buttons';
+import { Amplify, Storage } from 'aws-amplify';
+import awsconfig from '../src/aws-exports';
+Amplify.configure(awsconfig);
 
 export default function CameraScreen({navigation}) {
 
@@ -33,7 +36,7 @@ const takePicture = async() => {
   }
 }
 
-const saveImage = async() => {
+/*const saveImage = async() => {
   if(image){
     try {
       await MediaLibrary.createAssetAsync(image);
@@ -44,6 +47,44 @@ const saveImage = async() => {
       console.log(error)
     }
   }
+}*/
+const saveImage = async() => {
+  if(image){
+    try {
+      uploadImage(image);
+      console.log(image.uri)
+      await MediaLibrary.createAssetAsync(image);
+      navigation.navigate("Loading");
+      setFood(image);
+      //setImage(null);
+    } catch (e) {
+      console.log(error)
+    }
+  }
+}
+
+const fetchImageUri = async(uri) => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  return blob;
+}  
+
+const uploadImage = async (file) => {
+  const img = await fetchImageUri(file)
+  return Storage.put('Food-image'+Math.random()+'.jpg',img,{ 
+    level: 'public',
+    contentType: file.type,
+    progressCallback(uploadProgress){
+      console.log("PROGRESS=======" ,uploadProgress.loaded + '/' + uploadProgress.total)
+    } 
+  })
+  .then((res)=> {
+    Storage.get(res.key)
+    .then((result)=> {
+      console.log ("Result URL >>>>>",result)
+    })
+    .catch(e=> console.log(e))
+  })
 }
 
 
